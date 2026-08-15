@@ -1,0 +1,20 @@
+[project]
+name = "analisis-erce-3ro"
+version = "0.1.0"
+description = "Análisis estadístico del ERCE 2019 – Cuba, 3er grado (lectura y matemática)"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "plotly>=5.24",
+    "streamlit>=1.39",
+    "scipy>=1.13",
+    "statsmodels>=0.14",
+    "kaleido>=0.2.1",
+    "nbformat>=5.11.0",
+    "ipykernel>=7.3.0",
+    "jupyter-client>=8.9.1",
+]
+
+[tool.uv]
+package = false
