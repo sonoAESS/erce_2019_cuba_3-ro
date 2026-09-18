@@ -477,11 +477,11 @@ def conclusiones_finales(S):
             ),
             "metodo": (
                 "ANOVA de un factor sobre el puntaje medio por estudiante, con eta cuadrado "
-                "(η²) para estimar la varianza explicada; medias provinciales ponderadas con "
-                "intervalo de confianza al 95% por réplicas BRR."
+                "(η²) para estimar la varianza explicada; medias provinciales ponderadas "
+                "con error estándar por réplicas BRR."
             ),
             "seccion": "Rendimiento por territorio",
-            "detalle": "Gráfico de barras por provincia con IC95% y tabla completa.",
+            "detalle": "Gráfico de barras por provincia y tabla completa.",
         },
         {
             "pregunta": "¿Existe brecha entre zona urbana y rural?",
@@ -497,10 +497,10 @@ def conclusiones_finales(S):
             "metodo": (
                 "Prueba t de Welch sobre el puntaje medio (valores plausibles promediados), "
                 "con d de Cohen para dimensionar el tamaño de la brecha; barras de medias "
-                "por zona con IC 95% y referencia regional."
+                "por zona con referencia regional."
             ),
             "seccion": "Rendimiento por territorio",
-            "detalle": "Barras de medias zona urbana vs rural (IC95%) y texto interpretativo.",
+            "detalle": "Barras de medias por zona (urbana vs rural) y texto interpretativo.",
         },
         {
             "pregunta": "¿Cómo se asocia el nivel socioeconómico con el rendimiento?",
@@ -534,10 +534,10 @@ def conclusiones_finales(S):
             "metodo": (
                 "Prueba t de Welch entre niñas y niños sobre el puntaje medio (valores "
                 "plausibles promediados), con d de Cohen para el tamaño del efecto; "
-                "barras de medias por género con IC 95% y referencia regional."
+                "barras de medias por género con referencia regional."
             ),
             "seccion": "Género y factores",
-            "detalle": "Barras de medias por género con IC95% y tabla de correlaciones de factores del estudiante.",
+            "detalle": "Barras de medias por género y tabla de correlaciones de factores del estudiante.",
         },
         {
             "pregunta": "¿Qué factores del estudiante acompañan al mejor rendimiento?",

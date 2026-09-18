@@ -73,29 +73,22 @@ def grafico_distribucion(df, score, titulo, color):
 
 
 def grafico_barras_medias(tabla, col_grupo, score_label, color, titulo):
-    """Barras horizontales con medias e intervalo de confianza al 95%."""
+    """Barras horizontales con la media por grupo."""
     tabla = tabla.sort_values("Media")
     fig = go.Figure(go.Bar(
         x=tabla["Media"], y=tabla[col_grupo], orientation="h",
         marker_color=color, marker_line_width=0,
-        error_x=dict(
-            type="data", symmetric=False,
-            array=(tabla["IC95_sup"] - tabla["Media"]).clip(lower=0),
-            arrayminus=(tabla["Media"] - tabla["IC95_inf"]).clip(lower=0),
-            thickness=1.2, width=0.4, color="rgba(0,0,0,0.55)",
-        ),
         text=tabla["Media"].round(0).astype(int),
         textposition="inside",
         textfont={"color": "white", "size": 11},
         insidetextanchor="middle",
         cliponaxis=False,
-        hovertemplate="%{y}<br>Media: %{x:.1f}<br>IC95%%: [%{customdata[0]:.0f}, %{customdata[1]:.0f}]<extra></extra>",
-        customdata=np.stack([tabla["IC95_inf"], tabla["IC95_sup"]], axis=-1),
+        hovertemplate="%{y}<br>Media: %{x:.1f}<extra></extra>",
     ))
     fig.add_vline(x=700, line_dash="dot", line_color=COLORES["gris"])
     _anotar_referencia(fig, 700, "Media regional 700")
-    xmax = tabla["IC95_sup"].max()
-    xmin = min(0, tabla["IC95_inf"].min())
+    xmax = tabla["Media"].max()
+    xmin = min(0, tabla["Media"].min())
     fig.update_xaxes(range=[xmin, xmax * 1.03])
     return _layout(fig, titulo, alto=120 + 34 * len(tabla), xlab=f"Puntaje medio ({score_label})")
 
@@ -109,18 +102,15 @@ def grafico_caja(df, x, y, color, titulo, puntos="suspectedoutliers"):
 
 
 def grafico_medias_grupo(tabla, col_grupo, color, titulo, xlab=None):
-    """Barras verticales con la media ponderada por grupo, IC al 95 %, n y la
+    """Barras verticales con la media ponderada por grupo, la n y la
     referencia regional (más informativo que la caja de puntajes).
 
-    `tabla` es el resultado de `analysis.tabla_resumen(df, score, col_grupo)`
-    con columnas: <grupo>, n, Media, EE, IC95_inf, IC95_sup, DE.
+    `tabla` es el resultado de `analysis.tabla_resumen(df, score, col_grupo)`.
     """
     filas = tabla.sort_values("Media", ascending=False)
     cats = filas[col_grupo].astype(str).tolist()
     medias = filas["Media"].astype(float).tolist()
     n = filas["n"].astype(int).tolist()
-    ic_inf = filas["IC95_inf"].astype(float).tolist()
-    ic_sup = filas["IC95_sup"].astype(float).tolist()
 
     fig = go.Figure(go.Bar(
         x=cats,
@@ -130,16 +120,9 @@ def grafico_medias_grupo(tabla, col_grupo, color, titulo, xlab=None):
         textposition="outside",
         cliponaxis=False,
         textfont={"color": "#222222", "size": 13},
-        error_y=dict(
-            type="data", symmetric=False,
-            array=[max(0, s - m) for m, s in zip(medias, ic_sup)],
-            arrayminus=[max(0, m - i) for m, i in zip(medias, ic_inf)],
-            thickness=1.4, width=10, color="rgba(0,0,0,0.6)",
-        ),
-        customdata=list(zip(n, [round(i, 1) for i in ic_inf], [round(s, 1) for s in ic_sup])),
+        customdata=list(zip(n)),
         hovertemplate=(
-            "<b>%{x}</b><br>Media: %{y:.1f}<br>n: %{customdata[0]}<br>"
-            "IC95%%: [%{customdata[1]}, %{customdata[2]}]<extra></extra>"
+            "<b>%{x}</b><br>Media: %{y:.1f}<br>n: %{customdata[0]}<extra></extra>"
         ),
     ))
 
@@ -149,14 +132,14 @@ def grafico_medias_grupo(tabla, col_grupo, color, titulo, xlab=None):
     if len(cats) == 2:
         dif = medias[0] - medias[1]
         fig.add_annotation(
-            x=cats[0], y=max(ic_sup) + 12,
+            x=cats[0], y=max(medias) + 12,
             text=f"Δ {dif:+.0f} puntos",
             showarrow=False, font={"size": 12, "color": "#333333"},
             bgcolor="rgba(255,255,255,0.85)", borderpad=3, bordercolor="#e8e8e8",
         )
 
-    fig.update_yaxes(range=[600, (max(ic_sup) + 60 if len(cats) == 2 else max(ic_sup) + 30)])
-    return _layout(fig, titulo, alto=430, xlab=xlab, ylab="Puntaje medio (IC 95 %)")
+    fig.update_yaxes(range=[600, (max(medias) + 60 if len(cats) == 2 else max(medias) + 30)])
+    return _layout(fig, titulo, alto=430, xlab=xlab, ylab="Puntaje medio")
 
 
 def grafico_pareto_niveles(df, nivel_col, titulo):
