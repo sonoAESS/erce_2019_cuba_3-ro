@@ -445,6 +445,11 @@ def conclusiones_finales(S):
     fila_lect = S["reg"][S["reg"]["Área"] == "Lectura"].iloc[0]
     fila_mat = S["reg"][S["reg"]["Área"] == "Matemática"].iloc[0]
 
+    esc_con_score = S["esc"][S["esc"]["PL3"].notna()]
+    top_prov = esc_con_score.groupby("ubi1_cen_esc").size().sort_values(ascending=False)
+    provincias = top_prov.index[:3].tolist()
+    prov_n = [int(v) for v in top_prov.values[:3]]
+
     return [
         {
             "pregunta": "¿Cuál es el nivel de rendimiento de Cuba frente a la región?",
@@ -577,10 +582,11 @@ def conclusiones_finales(S):
         {
             "pregunta": "¿Dónde se concentra geográficamente el rendimiento?",
             "respuesta": (
-                f"El mapa reproduce las {S['esc'][S['esc']['PL3'].notna()].shape[0]} escuelas "
-                f"con puntaje de la muestra. Las burbujas más oscuras indican mayor rendimiento; "
-                f"Pinar del Río, La Habana y Matanzas concentran la mayor cantidad de escuelas, "
-                f"y se aprecia heterogeneidad entre municipios."
+                f"El mapa reproduce las {len(esc_con_score)} escuelas con puntaje de la "
+                f"muestra. Las burbujas más oscuras indican mayor rendimiento; las "
+                f"provincias con más escuelas son {', '.join(provincias[:2])} y "
+                f"{provincias[2]} ({', '.join(str(n) for n in prov_n)} escuelas, "
+                f"respectivamente), y se aprecia heterogeneidad entre municipios."
             ),
             "metodo": (
                 "Media de los valores plausibles por escuela, representada como burbuja "
