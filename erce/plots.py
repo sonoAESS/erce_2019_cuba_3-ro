@@ -108,6 +108,57 @@ def grafico_caja(df, x, y, color, titulo, puntos="suspectedoutliers"):
     return _layout(fig, titulo, alto=480, ylab="Puntaje")
 
 
+def grafico_medias_grupo(tabla, col_grupo, color, titulo, xlab=None):
+    """Barras verticales con la media ponderada por grupo, IC al 95 %, n y la
+    referencia regional (más informativo que la caja de puntajes).
+
+    `tabla` es el resultado de `analysis.tabla_resumen(df, score, col_grupo)`
+    con columnas: <grupo>, n, Media, EE, IC95_inf, IC95_sup, DE.
+    """
+    filas = tabla.sort_values("Media", ascending=False)
+    cats = filas[col_grupo].astype(str).tolist()
+    medias = filas["Media"].astype(float).tolist()
+    n = filas["n"].astype(int).tolist()
+    ic_inf = filas["IC95_inf"].astype(float).tolist()
+    ic_sup = filas["IC95_sup"].astype(float).tolist()
+
+    fig = go.Figure(go.Bar(
+        x=cats,
+        y=medias,
+        marker_color=color,
+        text=[f"{m:.0f}" for m in medias],
+        textposition="outside",
+        cliponaxis=False,
+        textfont={"color": "#222222", "size": 13},
+        error_y=dict(
+            type="data", symmetric=False,
+            array=[max(0, s - m) for m, s in zip(medias, ic_sup)],
+            arrayminus=[max(0, m - i) for m, i in zip(medias, ic_inf)],
+            thickness=1.4, width=10, color="rgba(0,0,0,0.6)",
+        ),
+        customdata=list(zip(n, [round(i, 1) for i in ic_inf], [round(s, 1) for s in ic_sup])),
+        hovertemplate=(
+            "<b>%{x}</b><br>Media: %{y:.1f}<br>n: %{customdata[0]}<br>"
+            "IC95%%: [%{customdata[1]}, %{customdata[2]}]<extra></extra>"
+        ),
+    ))
+
+    fig.add_hline(y=700, line_dash="dot", line_color=COLORES["gris"])
+    _anotar_referencia(fig, 700, "Referencia regional 700", orientacion="h")
+
+    if len(cats) == 2:
+        dif = medias[0] - medias[1]
+        fig.add_annotation(
+            x=cats[0], y=max(ic_sup) + 12,
+            text=f"Δ {dif:+.0f} puntos",
+            showarrow=False, font={"size": 12, "color": "#333333"},
+            bgcolor="rgba(255,255,255,0.85)", borderpad=3, bordercolor="#e8e8e8",
+        )
+
+    fig.update_yaxes(range=[600, (max(ic_sup) + 60 if len(cats) == 2 else max(ic_sup) + 30)])
+    return _layout(fig, titulo, alto=430, xlab=xlab, ylab="Puntaje medio (IC 95 %)")
+
+
 def grafico_pareto_niveles(df, nivel_col, titulo):
     """Barras apiladas 100% de niveles de desempeño por grupo."""
     tabla = pd.crosstab(df[nivel_col].fillna("Sin dato"), df["genero"].fillna("Sin dato"),

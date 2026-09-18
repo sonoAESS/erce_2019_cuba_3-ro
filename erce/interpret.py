@@ -469,11 +469,11 @@ def conclusiones_finales(S):
             ),
             "metodo": (
                 "Prueba t de Welch sobre el puntaje medio (valores plausibles promediados), "
-                "con d de Cohen para dimensionar el tamaño de la brecha; diagramas de caja "
-                "para visualizar la distribución completa."
+                "con d de Cohen para dimensionar el tamaño de la brecha; barras de medias "
+                "por zona con IC 95% y referencia regional."
             ),
             "seccion": "Rendimiento por territorio",
-            "detalle": "Diagrama de caja zona urbana vs rural y texto interpretativo.",
+            "detalle": "Barras de medias zona urbana vs rural (IC95%) y texto interpretativo.",
         },
         {
             "pregunta": "¿Cómo se asocia el nivel socioeconómico con el rendimiento?",
@@ -504,7 +504,7 @@ def conclusiones_finales(S):
             "metodo": (
                 "Prueba t de Welch entre niñas y niños sobre el puntaje medio (valores "
                 "plausibles promediados), con d de Cohen para el tamaño del efecto; "
-                "distribuciones completas en diagramas de caja."
+                "barras de medias por género con IC 95% y referencia regional."
             ),
             "seccion": "Género y factores",
             "detalle": "Diagramas de caja por género y tabla de correlaciones de factores del estudiante.",
