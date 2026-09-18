@@ -110,7 +110,13 @@ def tabla_resumen(df, score, grupo, peso="WSEN"):
 
 
 def prueba_t_grupos(df, score, grupo, peso="WSEN"):
-    """t de Student (Welch) entre los 2 grupos más frecuentes de `grupo`."""
+    """t de Student (Welch) entre los 2 grupos más frecuentes de `grupo`.
+
+    La prueba (t, p, d de Cohen) se calcula sobre el puntaje medio de cada
+    estudiante sin ponderar; las medias reportadas por grupo se calculan
+    ponderadas con `peso`, para que coincidan con las de `tabla_resumen`
+    y con las barras de los gráficos.
+    """
     cats = df[grupo].value_counts(dropna=True)
     cats = cats[cats.index != "Sin dato"]
     if len(cats) < 2:
@@ -122,11 +128,13 @@ def prueba_t_grupos(df, score, grupo, peso="WSEN"):
         return None
     t, p = stats.ttest_ind(a, b, equal_var=False)
     d = (a.mean() - b.mean()) / np.sqrt((a.var(ddof=1) + b.var(ddof=1)) / 2)
+    wa = media_ponderada(df[df[grupo] == top2[0]][[score, peso]], score, peso)[0]
+    wb = media_ponderada(df[df[grupo] == top2[1]][[score, peso]], score, peso)[0]
     return {
         "grupo": grupo,
         "cat_a": top2[0], "cat_b": top2[1],
-        "media_a": round(a.mean(), 1), "media_b": round(b.mean(), 1),
-        "diferencia": round(a.mean() - b.mean(), 1),
+        "media_a": round(wa, 1), "media_b": round(wb, 1),
+        "diferencia": round(wa - wb, 1),
         "t": round(t, 3), "p": p,
         "cohen_d": round(d, 3),
         "significativo": p < 0.05,
