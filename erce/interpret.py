@@ -26,6 +26,18 @@ def _describir_d(d):
     return "grande"
 
 
+def _describir_d_f(d):
+    """Igual que _describir_d, en la forma femenina para «magnitud»."""
+    if d is None:
+        return "moderada"
+    return {
+        "muy pequeño": "muy pequeña",
+        "pequeño": "pequeña",
+        "moderado": "moderada",
+        "grande": "grande",
+    }[_describir_d(d)]
+
+
 def _describir_r(r):
     """Califica la magnitud de una correlación de Pearson."""
     ar = abs(r)
@@ -43,6 +55,15 @@ def _pts_a_de(dif, de):
     if not de:
         return None
     return dif / de
+
+
+def _a_la(etiqueta):
+    """Precede una etiqueta con su preposición correcta («al»/«a la»/«a»)."""
+    if etiqueta.startswith("el "):
+        return "al " + etiqueta[len("el "):]
+    if etiqueta.startswith("la "):
+        return "a la " + etiqueta[len("la "):]
+    return "a " + etiqueta
 
 
 def interpretar_nacional(res):
@@ -146,12 +167,12 @@ def interpretar_zona(res_t, score_label, de):
         analisis = base + ". La diferencia no alcanza significación estadística."
 
     conclusion = (
-        "**Conclusión:** la brecha urbano-rural existe y es significativa, pero su magnitud es "
-        "comparativamente menor que la asociada al nivel socioeconómico o a las diferencias entre "
-        "provincias. Ello indica que la ruralidad en sí misma no explica el menor desempeño: "
-        "las condiciones socioeconómicas que suelen acompañarla son un factor más relevante, "
-        "por lo que las políticas deberían atender la desventaja rural con un enfoque "
-        "socioeconómico y no solo territorial."
+        "**Conclusión:** la brecha urbano-rural existe pero es pequeña y su dirección no es "
+        "uniforme entre asignaturas: la ventaja urbana observada en Lectura se revierte a "
+        "favor de la zona rural en Matemática. Ello indica que la ruralidad en sí misma no "
+        "explica el desempeño: importan más las condiciones socioeconómicas y de recursos que "
+        "suelen acompañarla, por lo que la política educativa debería atender la desventaja "
+        "rural con un enfoque socioeconómico y no limitarse a una etiqueta territorial."
     )
     return {"analisis": analisis, "conclusion": conclusion}
 
@@ -187,11 +208,12 @@ def interpretar_isect(cuartiles, corr, score_label, de):
 
     conclusion = (
         "**Conclusión:** el nivel socioeconómico de la familia es el factor individual que "
-        "mejor anticipa el desempeño, con un efecto de magnitud moderada pero sistemática. "
-        "Aunque la mayor parte de la variabilidad queda sin explicar, la brecha de ~0.6 DE entre "
-        "los extremos de la distribución confirma que la equidad en las condiciones de vida "
-        "es un eje central para la mejora educativa: las políticas de compensación a los "
-        "hogares más desfavorecidos pueden contribuir a reducir esta brecha."
+        "mejor anticipa el desempeño en esta asignatura, con una brecha de magnitud "
+        f"{_describir_d_f(desv)} entre los extremos de la "
+        "distribución. Aunque la mayor parte de la variabilidad queda sin explicar, la brecha "
+        f"de ≈ {desv:.2f} DE entre los cuartiles extremos confirma que la equidad en las "
+        "condiciones de vida es un eje central para la mejora educativa: las políticas de "
+        "compensación a los hogares más desfavorecidos pueden contribuir a reducir esta brecha."
     )
     return {"analisis": analisis, "conclusion": conclusion}
 
@@ -208,10 +230,10 @@ def interpretar_genero(res_t, score_label, de):
         ventaja = res_t["cat_b"]
         dif = res_t["media_b"] - res_t["media_a"]
         medio_a, medio_b = res_t["media_b"], res_t["media_a"]
-    articulo = "Los" if ventaja == "Niño" else "Las"
+    det = "Los **niños**" if ventaja == "Niño" else "Las **niñas**"
 
     base = (
-        f"{articulo} **{ventaja}** alcanzan, en promedio, **{dif:.0f} puntos más** que sus "
+        f"{det} alcanzan, en promedio, **{dif:.1f} puntos más** que sus "
         f"pares en {score_label} ({medio_a:.0f} vs {medio_b:.0f})"
     )
     if res_t["p"] < 0.05:
@@ -271,7 +293,8 @@ def interpretar_correlaciones(corr_df, score_label):
     if len(top_pos):
         v = top_pos.iloc[0]
         extras.append(
-            f"La asociación positiva más fuerte corresponde a {etiquetas.get(v['variable'], v['variable'])}, "
+            f"La asociación positiva más fuerte corresponde "
+            f"{_a_la(etiquetas.get(v['variable'], v['variable']))}, "
             f"con una magnitud {_describir_r(v['r'])} (r = {v['r']:.2f}, p {fmt_p(v['p'])}) y "
             f"que explica ≈ {v['r']**2*100:.0f}% de la varianza."
         )
@@ -285,11 +308,12 @@ def interpretar_correlaciones(corr_df, score_label):
     analisis += " ".join(extras)
 
     conclusion = (
-        "**Conclusión:** el desempeño no depende de un único factor. Las condiciones "
-        "socioeconómicas y de apoyo familiar son los acompañantes más sólidos del buen "
-        "rendimiento, mientras que la violencia escolar se asocia con resultados más bajos. "
-        "Estas son asociaciones, no causalidad, pero sugieren que intervenir sobre el clima "
-        "escolar y el apoyo familiar puede ser un complemento eficaz a la mejora pedagógica."
+        "**Conclusión:** el desempeño no depende de un único factor. El apoyo familiar y el "
+        "nivel socioeconómico se asocian de forma sistemática y positiva con el rendimiento, "
+        "en compañía del clima escolar percibido, mientras que la violencia escolar se asocia "
+        "con puntajes más bajos. Estas son asociaciones, no causalidad, pero sugieren que "
+        "intervenir sobre el clima escolar y el apoyo familiar puede ser un complemento "
+        "eficaz a la mejora pedagógica."
     )
     return {"analisis": analisis, "conclusion": conclusion}
 
@@ -318,8 +342,8 @@ def interpretar_indices(corr_df, score_label):
         )
     analisis = (
         f"Todos los índices del Módulo Nacional se asocian positivamente con el puntaje "
-        f"en {score_label}. La asociación más fuerte corresponde a "
-        f"{etiquetas.get(top['variable'], top['variable'])} (r = {top['r']:.2f}, "
+        f"en {score_label}. La asociación más fuerte corresponde "
+        f"{_a_la(etiquetas.get(top['variable'], top['variable']))} (r = {top['r']:.2f}, "
         f"p {fmt_p(top['p'])}), con una magnitud {_describir_r(top['r'])}. Detalle: "
         f"{'; '.join(partes[:4])}."
     )
@@ -354,10 +378,11 @@ def interpretar_regional(reg, res):
     )
     conclusion = (
         "**Conclusión:** la posición de Cuba en el contexto regional es de liderazgo en ambas "
-        "asignaturas, particularmente en Matemática. No obstante, este resultado convive con "
-        "una alta dispersión interna: las diferencias entre estudiantes dentro de Cuba superan "
-        "a las diferencias entre los países de la región, de modo que el desafío principal "
-        "no es elevar aún más el promedio, sino reducir las desigualdades internas de aprendizaje."
+        "asignaturas, particularmente en Matemática. No obstante, la dispersión interna "
+        f"(DE ≈ {de_lect:.0f} en Lectura y ≈ {de_mat:.0f} en Matemática) es mayor que la "
+        f"ventaja sobre la media regional ({fila_lect['Diferencia']:.0f} y "
+        f"{fila_mat['Diferencia']:.0f} puntos), lo que indica que el desafío principal no es "
+        "elevar aún más el promedio, sino reducir las desigualdades internas de aprendizaje."
     )
     return {"analisis": analisis, "conclusion": conclusion}
 
@@ -388,6 +413,8 @@ def conclusiones_finales(S):
 
     corr_ind = S["corr_ind_lect"]
     r_ind = corr_ind.loc[corr_ind["variable"] == "Indice_global", "r"].iloc[0]
+
+    desv_isect = (q4 - q1) / lect["de"]
 
     prov_mejor = S["tab_lect_prov"].iloc[0]
     prov_peor = S["tab_lect_prov"].iloc[-1]
@@ -422,8 +449,8 @@ def conclusiones_finales(S):
         {
             "pregunta": "¿Cuál es el nivel de rendimiento de Cuba frente a la región?",
             "respuesta": (
-                f"Los estudiantes cubanos de 3er grado promedian **{lect['media']:.0f} puntos "
-                f"en Lectura** y **{mat['media']:.0f} en Matemática**, por encima de la media "
+                f"Los estudiantes cubanos de 3er grado promedian **{lect['media']:.1f} puntos "
+                f"en Lectura** y **{mat['media']:.1f} en Matemática**, por encima de la media "
                 f"regional de referencia (700) y del promedio regional del ERCE 2019 "
                 f"({fila_lect['Región']:.0f} y {fila_mat['Región']:.0f}). Cuba registró el "
                 f"puntaje **más alto de la región en Matemática de 3er grado**."
@@ -481,8 +508,9 @@ def conclusiones_finales(S):
                 f"El nivel socioeconómico familiar (ISECF) es el factor individual más "
                 f"asociado al rendimiento: la brecha entre el cuartil más alto y el más bajo "
                 f"del índice es de **{q4 - q1:.0f} puntos** en Lectura ({q4:.0f} vs {q1:.0f}, "
-                f"≈ 0.6 DE) y la correlación es r = {r_isect:.2f}, lo que implica que el ISECF "
-                f"explica cerca del **{r_isect**2*100:.0f}% de la varianza** de los puntajes."
+                f"≈ {desv_isect:.2f} DE) y la correlación es r = {r_isect:.2f}, lo que "
+                f"implica que el ISECF explica cerca del **{r_isect**2*100:.0f}% de la "
+                f"varianza** de los puntajes."
             ),
             "metodo": (
                 "Construcción de cuartiles del índice ISECF (estandarizado, media 0 y DE 1) "
@@ -495,8 +523,10 @@ def conclusiones_finales(S):
         {
             "pregunta": "¿Existen brechas de género en el rendimiento?",
             "respuesta": (
-                f"En Lectura, {genero_lect_gana.lower()}s promedian **{genero_lect_dif:.0f} "
-                f"puntos más** que {genero_lect_perd.lower()}s (d = {abs(tg_lect['cohen_d']):.2f}, "
+                f"En Lectura, {'las niñas' if genero_lect_gana == 'Niña' else 'los niños'} "
+                f"promedian **{genero_lect_dif:.0f} puntos más** que "
+                f"{'los niños' if genero_lect_gana == 'Niña' else 'las niñas'} "
+                f"(d = {abs(tg_lect['cohen_d']):.2f}, "
                 f"efecto {_describir_d(tg_lect['cohen_d'])} y estadísticamente significativo). "
                 f"En Matemática, en cambio, la brecha es mínima "
                 f"({genero_mat_dif:.1f} puntos, p {fmt_p(tg_mat['p'])}) y no significativa."
@@ -507,15 +537,15 @@ def conclusiones_finales(S):
                 "barras de medias por género con IC 95% y referencia regional."
             ),
             "seccion": "Género y factores",
-            "detalle": "Diagramas de caja por género y tabla de correlaciones de factores del estudiante.",
+            "detalle": "Barras de medias por género con IC95% y tabla de correlaciones de factores del estudiante.",
         },
         {
             "pregunta": "¿Qué factores del estudiante acompañan al mejor rendimiento?",
             "respuesta": (
-                "El apoyo al aprendizaje (AAEG3, r = 0.24), el involucramiento parental "
-                "(INVAP, r = 0.24), la organización de la enseñanza (ORGEN, r = 0.23) y el "
-                "nivel socioeconómico (ISECF, r = 0.26) se asocian positivamente con el "
-                "puntaje. En sentido inverso, la **violencia escolar** (VIOES, r = -0.24) "
+                "El nivel socioeconómico (ISECF, r = 0.26), el apoyo al aprendizaje "
+                "(AAEG3, r = 0.24), el involucramiento parental (INVAP, r = 0.24) y la "
+                "organización de la enseñanza (ORGEN, r = 0.23) se asocian positivamente con "
+                "el puntaje. En sentido inverso, la **violencia escolar** (VIOES, r = -0.24) "
                 "acompaña a puntajes más bajos. La edad y la autoeficacia en matemática "
                 "prácticamente no se asocian."
             ),
