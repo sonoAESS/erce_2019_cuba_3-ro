@@ -7,6 +7,12 @@ venv/
 07.ERCE-2019-FINAL/
 2. Libros de código/
 
+# Datasets intermedios regenerables del bloque de modelos
+modelos/datos/*.csv
+
+# Copia del módulo nacional (redundante con 07.ERCE-2019-FINAL/.../mod_mat)
+CUBA3_MAT_MODULO_NACIONAL.csv
+
 # Python
 __pycache__/
 *.py[cod]

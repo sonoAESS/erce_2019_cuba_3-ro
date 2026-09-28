@@ -15,6 +15,18 @@ dependencies = [
     "ipykernel>=7.3.0",
     "jupyter-client>=8.9.1",
     "nbconvert>=7.16.0",
+    # Bloque de construcción de modelos (modelos/)
+    "scikit-learn>=1.6",
+    "imbalanced-learn>=0.12",
+    "matplotlib>=3.9",
+    "joblib>=1.4",
+    "openpyxl>=3.1",
+    "scikit-posthocs>=0.10",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
 ]
 
 [tool.uv]

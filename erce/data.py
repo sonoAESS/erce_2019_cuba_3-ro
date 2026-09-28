@@ -80,6 +80,11 @@ def dataframe_estudiantes():
         "IDSTUD", "ISECF", "EDAD", "PREE", "REPC", "AUSE", "ATRE", "LIBH",
         "TSTU", "AAEG3", "ORGEN", "EFMAT", "VIOES", "INVAP", "LAN", "MAT",
     ]
+    # Ítems del cuestionario de estudiantes (E3IT*): se incorporan como features.
+    # Se excluyen E3IT21_01/02: son los mismos conceptos que E3IT21_01/02_N del
+    # Módulo Nacional (0/1 normalizado) — el módulo manda para evitar doble conteo.
+    fa_cols += [c for c in fa.columns
+                if c.upper().startswith("E3IT") and c not in {"E3IT21_01", "E3IT21_02"}]
     base = base.merge(fa[fa_cols], on="IDSTUD", how="left", validate="one_to_one")
 
     # Territorio (provincia y municipio) desde el mapa de escuelas
@@ -130,10 +135,16 @@ def dataframe_modulo():
         "Indice_prep_didact_prof", "Indice_calidad_clases_prof",
         "Indice_calidad_clases_dir",
         "PPIT45_N", "sec_3", "can_prof_3", "prof_hom_3", "prof_muj_3",
-        "area_esc", "edad", "género",
+        "num_hab_esc", "area_esc", "edad", "género",
         "VP1", "VP2", "VP3", "VP4", "VP5",
         "NL_VP1", "PS_STR_NEW", "GRUPO", "WT", "WSEN",
     ]
+    # Ítems del Módulo Nacional como features: cuestionario del estudiante
+    # (E3IT21_.._N), del docente (PPIT44_.., PPIT45, PPIT46_..) y del directivo
+    # (DDIT41_..). Se incluyen cuando existen en el archivo.
+    idx_cols += [c for c in ml.columns
+                 if c.startswith(("E3IT21_", "PPIT44_", "PPIT45", "PPIT46_", "DDIT41_"))
+                 and c not in idx_cols]
     df = ml[[c for c in idx_cols if c in ml.columns]].copy()
     df["PL3"] = _pv_mean(df, cfg.VARIABLES_PV)
     df = df.merge(pm, on="IDSTUD", how="left", validate="one_to_one")
