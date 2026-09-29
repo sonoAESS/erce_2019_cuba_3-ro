@@ -62,9 +62,13 @@ def _roc_area(y_true_bin, prob_clase):
 
 def calcular_metricas_clasificacion(y_true, y_pred, y_prob, clases):
     """Devuelve un dict con el resumen Weka (kappa, exactitud), por clase y matriz."""
-    clases = list(clases)
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
+    # `clases` y los objetivos deben compartir representación: los objetivos
+    # numéricos (float/int) no casan con unas `clases` en str y viceversa, y sin
+    # alinear ambos lados confusion_matrix, las tasas por clase y MCC quedan
+    # todo en cero. Se normaliza todo a str.
+    clases = [str(c) for c in clases]
+    y_true = np.asarray([str(v) for v in y_true])
+    y_pred = np.asarray([str(v) for v in y_pred])
     if y_prob is not None:
         y_prob = _normalizar_probas(y_prob, clases)
     exact = accuracy_score(y_true, y_pred)

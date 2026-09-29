@@ -25,6 +25,19 @@ def test_metricas_clasificacion_exactitud(datos_clasif):
     assert m["por_clase"]["TP_Rate"].tolist() == pytest.approx([1.0, 1.0])
 
 
+def test_metricas_clasificacion_clases_str_con_objetivo_numerico():
+    """`clases` en str + y numérico es el caso real de las tareas derivadas."""
+    y = np.array([0.0] * 30 + [1.0] * 10)
+    yp = np.array([0.0] * 28 + [1.0] * 2 + [1.0] * 10)
+    m = metricas.calcular_metricas_clasificacion(
+        y, yp, np.column_stack([1 - yp, yp]), ["0.0", "1.0"])
+    assert m["matriz"].sum() == len(y)
+    assert m["matriz"][1, 1] == 10
+    assert m["por_clase"]["TP_Rate"].tolist() == pytest.approx(
+        [28 / 30, 1.0], abs=1e-4)
+    assert m["por_clase"]["MCC"].iloc[1] > 0
+
+
 def test_metricas_clasificacion_multiclase():
     y = np.array(["I", "II", "III", "I", "II", "III", "III", "III"])
     yp = np.array(["I", "II", "III", "I", "II", "III", "III", "III"])
