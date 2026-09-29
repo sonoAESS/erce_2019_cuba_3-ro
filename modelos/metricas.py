@@ -164,3 +164,31 @@ def calcular_metricas_regresion(y_true, y_pred):
 def metricas_fold_regresion(y_true, y_pred):
     m = calcular_metricas_regresion(y_true, y_pred)
     return {"rmse": m["rmse"], "mae": m["mae"], "r2": m["r2"]}
+
+
+# ------------------------------------------------------------- línea base
+# Sin referencia, un f1_macro de 0.49 o un r2 negativo se leen como desempeño
+# cuando en realidad son lo que consigue adivinar siempre lo más frecuente (o la
+# media). Estos dos helpers calculan esa referencia sobre el mismo holdout para
+# que cada métrica se pueda leer contra su suelo.
+def linea_base_clasificacion(y_true):
+    """Predicción constante de la clase mayoritaria (kappa 0 y AUC 0.5)."""
+    y_true = np.asarray([str(v) for v in y_true])
+    clases, conteo = np.unique(y_true, return_counts=True)
+    y_pred = np.full(len(y_true), clases[np.argmax(conteo)])
+    p = np.column_stack([(y_pred == c).astype(float) for c in clases])
+    return calcular_metricas_clasificacion(y_true, y_pred, p, list(clases))
+
+
+def linea_base_regresion(y_true):
+    """Predicción constante igual a la media del objetivo."""
+    y_true = np.asarray(y_true, dtype=float)
+    y_true = y_true[np.isfinite(y_true)]
+    y_pred = np.full(len(y_true), y_true.mean())
+    import warnings
+
+    from scipy.stats import ConstantInputWarning
+    with warnings.catch_warnings():
+        # r no está definido para una predicción constante: es el suelo (0).
+        warnings.simplefilter("ignore", ConstantInputWarning)
+        return calcular_metricas_regresion(y_true, y_pred)

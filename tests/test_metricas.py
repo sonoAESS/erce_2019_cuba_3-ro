@@ -38,6 +38,24 @@ def test_metricas_clasificacion_clases_str_con_objetivo_numerico():
     assert m["por_clase"]["MCC"].iloc[1] > 0
 
 
+def test_linea_base_clasificacion_es_el_suelo():
+    """Adivinar siempre lo más frecuente: kappa 0, AUC 0.5, f1>0 engañoso."""
+    y = np.array([0.0] * 76 + [1.0] * 24)
+    b = metricas.linea_base_clasificacion(y)
+    assert b["exactitud"] == pytest.approx(0.76, abs=1e-4)
+    assert b["kappa"] == pytest.approx(0.0)
+    assert b["auc_macro"] == pytest.approx(0.5)
+    assert b["f1_macro"] > 0.3  # <- el valor que se confunde con desempeño
+    assert b["matriz"].sum() == len(y)
+
+
+def test_linea_base_regresion_es_el_suelo():
+    y = np.array([700.0, 750.0, 800.0, 820.0])
+    b = metricas.linea_base_regresion(y)
+    assert b["r2"] == pytest.approx(0.0)
+    assert b["rmse"] == pytest.approx(y.std(ddof=0), abs=1e-3)
+
+
 def test_metricas_clasificacion_multiclase():
     y = np.array(["I", "II", "III", "I", "II", "III", "III", "III"])
     yp = np.array(["I", "II", "III", "I", "II", "III", "III", "III"])

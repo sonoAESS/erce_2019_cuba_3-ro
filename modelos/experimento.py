@@ -241,6 +241,15 @@ def ejecutar_tarea(tarea, muestras=None, folds_seleccion=cfg.CV_FOLDS_SELECCION,
         dg = sobreajuste.detectar_sobreajuste(-_mt, -hold["rmse"])
 
     cv_final = _cv_ganador(Xtr_df, ytr_ser, tipo, config, modelado_s, folds_final, semilla)
+    # Referencia del mismo holdout (clase mayoritaria / media del objetivo):
+    # sin ella un f1_macro de 0.49 o un r2 negativo se leen como desempeño.
+    base = (metricas.linea_base_clasificacion(yte_ser) if clasif
+            else metricas.linea_base_regresion(yte_ser))
+    base_hold = ({k: base[k] for k in ("exactitud", "f1_macro", "auc_macro", "kappa")}
+                 if clasif else {k: base[k] for k in ("r", "mae", "rmse", "r2")})
+    _supera = ((hold["f1_macro"] - base_hold["f1_macro"]) if clasif
+               else (hold["r2"] - base_hold["r2"]))
+    base_hold["supera_a_linea_base"] = round(float(_supera), 4)
     estab = _cv_estabilidad(Xtr_df, ytr_ser, tipo, config, modelado_s, semilla)
     curva = sobreajuste.curva_aprendizaje(
         _pipeline_cv(config, tipo, modelado_s, semilla), Xtr_df, ytr_ser,
@@ -281,6 +290,7 @@ def ejecutar_tarea(tarea, muestras=None, folds_seleccion=cfg.CV_FOLDS_SELECCION,
         "balanceo": config["balanceo"], "ir": round(float(ir_global or 0), 3),
         "estimacion": {
             "holdout": hold,
+            "linea_base_holdout": base_hold,
             "cv_weka": cv_final,
             "estabilidad_3x5cv": estab,
             "brecha": {"estado": dg["estado"], "detalle": dg["detalle"],
@@ -304,6 +314,11 @@ def ejecutar_tarea(tarea, muestras=None, folds_seleccion=cfg.CV_FOLDS_SELECCION,
     _vprint(f"   Ganador: {config['algoritmo']} ({config['selector']}, "
             f"balanceo={config['balanceo']}) → {principal} = {hold[principal]:.3f} · "
             f"brecha: {dg['estado']}")
+    _lbl = "f1_macro" if clasif else "r2"
+    _vprint(f"   Línea base ({'clase mayoritaria' if clasif else 'media'}): "
+            f"{_lbl} = {base_hold[_lbl]:.3f} → el modelo "
+            f"{'supera' if _supera > 0 else 'NO supera'} la base por "
+            f"{abs(_supera):.3f}")
     return artef
 
 

@@ -50,8 +50,15 @@ def main(argv=None):
         folds_seleccion=args.folds_seleccion, folds_final=args.folds_final,
         semilla=args.seed)
     print(f"\nManifiesto actualizado: {cfg.ARTEFACTOS_DIR}/manifiesto.json")
-    print(json.dumps({t: r["estimacion"]["holdout"] for t, r in resultados.items()},
-                     indent=1, default=str))
+    print("Holdout (modelo | línea base | diferencia):")
+    resumen = {}
+    for t, r in resultados.items():
+        h = r["estimacion"]["holdout"]
+        b = r["estimacion"]["linea_base_holdout"]
+        clave = "f1_macro" if r["tipo"] == "clasificacion" else "r2"
+        resumen[t] = {"modelo": h[clave], "linea_base": b[clave],
+                      "supera_a_linea_base": b["supera_a_linea_base"]}
+    print(json.dumps(resumen, indent=1, default=str))
     return resultados
 
 
