@@ -5,9 +5,10 @@ Cada dataset se escribe en `modelos/datos/<tarea>.csv` con TODAS las features
 primero y la VARIABLE OBJETIVO en la ÚLTIMA columna (convención del proceso:
 el IR y el balanceo se calculan sobre la última columna de la base de casos).
 
-El dataset maestro se construye sobre `erce.data.dataframe_estudiantes()`
-(5273 estudiantes) e incorpora los índices de calidad del Módulo Nacional
-(merge por IDSTUD, con NaN imputados más adelante por el pipeline).
+El dataset maestro se construye sobre `erce.data.dataframe_modulo_mat()`
+(Módulo Nacional de Matemática, CSV adicionado por el cliente; 4899 estudiantes
+tras deduplicar) e incorpora el contexto sociodemográfico de la base ERCE
+(ISECF, condiciones de vida) y los objetivos de matemática (PM3, nivel NL_VP1).
 """
 import os
 import sys
@@ -18,7 +19,7 @@ from . import config as cfg
 
 _cols_numericas = {
     *cfg.FEATURES_NUMERICOS,
-    "PL3", "PM3", "NL_VP1", "REPC",
+    "PM3", "REPC",
 }
 
 
@@ -30,17 +31,9 @@ def dataset_maestro():
     """DataFrame maestro con features + objetivos (sin transformar aún)."""
     from erce import data as D
 
-    df = D.dataframe_estudiantes()
-    mod = D.dataframe_modulo()
+    df = D.dataframe_modulo_mat()
 
-    # Columnas del Módulo Nacional (índices, ítems y contexto escolar) por
-    # estudiante; desde el módulo LECT (superconjunto del MAT).
-    cols_mod = [c for c in cfg.FEATURES_NUMERICOS if c in mod.columns]
-    df = df.merge(mod[["IDSTUD"] + cols_mod].drop_duplicates("IDSTUD"),
-                  on="IDSTUD", how="left", validate="one_to_one")
-
-    # Variables derivadas
-    df["provincia"] = df["ubi1_cen_esc"].astype(str)
+    # Variables derivadas (nivel matemático = NL_VP1 del archivo PM3)
     df["riesgo"] = (df["NL_VP1"] == "I").astype(int)
     df["superacion"] = df["NL_VP1"].isin(["III", "IV"]).astype(int)
 
@@ -50,7 +43,6 @@ def dataset_maestro():
             out[c] = out[c].astype("category")
     out["NL_VP1"] = df["NL_VP1"].astype(str)
     out["REPC"] = df["REPC"]
-    out["PL3"] = df["PL3"]
     out["PM3"] = df["PM3"]
     return out
 

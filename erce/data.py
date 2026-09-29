@@ -153,6 +153,35 @@ def dataframe_modulo():
     return df
 
 
+def dataframe_modulo_mat():
+    """Módulo Nacional de Matemática + contexto sociodemográfico ERCE.
+
+    Fuente de features: el CSV adicionado por el cliente (módulo nacional de
+    Matemática, prueba M3). Se deduplican los registros repetidos por IDSTUD
+    (difieren solo en Id_prof) y se cruza con PM3.csv (puntaje y nivel de
+    Matemática) y con FA_A3.csv (contexto sociodemográfico y repitencia).
+    """
+    mm = cargar_mod_mat()
+    mm = mm.sort_values("Id_prof").drop_duplicates("IDSTUD", keep="first").copy()
+
+    pm = cargar_pm3()
+    pm["PM3"] = _pv_mean(pm, cfg.VARIABLES_PV)
+    pm = pm[["IDSTUD", "PM3", "NL_VP1", "GRUPO", "WT", "WSEN"]].copy()
+
+    fa = cargar_fa()
+    fa_cols = ["IDSTUD", "ISECF", "EDU", "PREE", "REPC", "AUSE", "ATRE",
+               "LIBH", "TSTU"]
+    fa = fa[fa_cols].copy()
+
+    df = mm.merge(pm, on="IDSTUD", how="left", validate="one_to_one")
+    df = df.merge(fa, on="IDSTUD", how="left", validate="one_to_one")
+
+    df["género"] = df["género"].map(cfg.GENERO_LABEL).fillna("Sin dato")
+    df["area_esc"] = df["area_esc"].map(cfg.AREA_ESC_LABEL).fillna("Sin dato")
+    df["provincia"] = df["ubi1_cen_esc"].astype(str)
+    return df
+
+
 def dataframe_regional():
     """Datos regionales del informe ERCE 2019 (Cuba vs región), 3er grado."""
     return pd.DataFrame({

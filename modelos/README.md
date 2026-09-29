@@ -26,7 +26,7 @@ de escritorio de predicción/clasificación. Ver
 
 ```bash
 python -m modelos.entrenar                    # todas las tareas
-python -m modelos.entrenar --tareas reg_lect # una tarea
+python -m modelos.entrenar --tareas reg_mat   # una tarea
 python scripts/verificar_artefactos.py        # QA de artefactos
 python -m pytest -q                          # tests
 ```

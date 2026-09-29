@@ -7,7 +7,7 @@ tareas y guarda artefactos + reportes en `artefactos/`.
 Ejemplos:
     python -m modelos.entrenar --tareas clf_nivel clf_riesgo
     python -m modelos.entrenar --tareas todas --muestras 1500 --seed 42
-    python -m modelos.entrenar --tareas reg_lect --folds-seleccion 5 --folds-final 10
+    python -m modelos.entrenar --tareas reg_mat --folds-seleccion 5 --folds-final 10
 """
 import argparse
 import json
@@ -23,7 +23,7 @@ def crear_argparse():
                     "artefactos/ reportes/ para la app de escritorio.")
     p.add_argument("--tareas", nargs="+", default=["todas"],
                    help="Tareas a entrenar: clf_nivel clf_riesgo clf_superacion "
-                        "clf_repitencia reg_lect reg_mat, o 'todas'.")
+                        "clf_repitencia reg_mat, o 'todas'.")
     p.add_argument("--muestras", type=int, default=None,
                    help="Límite de filas por tarea (para pruebas rápidas).")
     p.add_argument("--seed", type=int, default=cfg.SEED,

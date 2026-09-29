@@ -41,56 +41,39 @@ BREAK_OVERFIT = 0.08             # brecha train-test (abs) que dispara alerta de
 MUESTRA_PERMUTACION = 1500       # límite de filas para permutation importance
 
 # ---------------------------------------------------------------- features
+# Fuente: Módulo Nacional de Matemática (CSV adicionado) + contexto
+# sociodemográfico de la base ERCE (FA_A3). La variable objetivo reportada en
+# últimos columnas de los datasets: PM3 / NL_VP1 / REPC.
 _FILTRO_SOLO_NUMERICAS = (
-    "ISECF", "EDAD", "AAEG3", "ORGEN", "EFMAT", "VIOES", "INVAP",
-    "PREE", "AUSE", "ATRE", "LIBH", "TSTU",
+    # Estudiante y su contexto escolar (CSV del módulo)
+    "edad", "sec_3", "can_prof_3", "prof_hom_3", "prof_muj_3", "num_hab_esc",
+    # Índices del estudiante, del docente y del directivo (CSV del módulo)
     "Indice_global", "Indice_preg", "Indice_refuerzo",
     "Indice_prep_didact_prof", "Indice_calidad_clases_prof",
     "Indice_calidad_clases_dir",
-    # Ítems del Módulo Nacional
+    # Ítems del Módulo Nacional (estudiante)
     "E3IT21_01_N", "E3IT21_02_N", "E3IT21_03_N", "E3IT21_04_N", "E3IT21_05_N",
+    # Ítems del Módulo Nacional (docente)
     "PPIT44_01_N", "PPIT44_02_N", "PPIT44_03_N", "PPIT44_04_N", "PPIT44_05_N",
     "PPIT45_N",
     "PPIT46_01_N", "PPIT46_02_N", "PPIT46_03_N", "PPIT46_04_N", "PPIT46_05_N",
+    # Ítems del Módulo Nacional (directivo)
     "DDIT41_01_N", "DDIT41_02_N", "DDIT41_03_N", "DDIT41_04_N", "DDIT41_05_N",
-    # Contexto escolar del Módulo Nacional
-    "sec_3", "can_prof_3", "prof_hom_3", "prof_muj_3", "num_hab_esc",
-    # Ítems del cuestionario de estudiantes (E3IT*) — se cargan dinámicamente
-    # desde FA_A3, excluyendo E3IT21_01/02 (subsumidos por el módulo).
+    # Contexto sociodemográfico (base ERCE)
+    "ISECF", "EDU", "PREE", "AUSE", "ATRE", "LIBH", "TSTU",
 )
 
-# Ítems E3IT* del cuestionario de estudiantes (el módulo aporta E3IT21_*_N).
-_ITEMS_FA = [
-    "E3IT01", "E3IT02", "E3IT03", "E3IT04", "E3IT05", "E3IT06", "E3IT07",
-    "E3IT08_01", "E3IT08_02", "E3IT08_03", "E3IT08_04",
-    "E3IT09_01", "E3IT09_02", "E3IT09_03", "E3IT09_04", "E3IT09_05", "E3IT09_06",
-    "E3IT10_01", "E3IT10_02", "E3IT10_03",
-    "E3IT11_01", "E3IT11_02", "E3IT11_03", "E3IT11_04",
-    "E3IT12_01", "E3IT12_02", "E3IT12_03", "E3IT12_04", "E3IT12_05",
-    "E3IT13_01", "E3IT13_02", "E3IT13_03", "E3IT13_04", "E3IT13_05",
-    "E3IT13_06", "E3IT13_07",
-    "E3IT14_01", "E3IT14_02", "E3IT14_03",
-    "E3IT15_01", "E3IT15_02", "E3IT15_03", "E3IT15_04", "E3IT15_05",
-    "E3IT15_06", "E3IT15_07",
-    "E3IT16_01", "E3IT16_02", "E3IT16_03", "E3IT16_04", "E3IT16_05",
-    "E3IT17",
-    "E3IT18_01", "E3IT18_02", "E3IT18_03", "E3IT18_04",
-    "E3IT19", "E3IT19A", "E3IT19B", "E3IT20",
-]
-
-FEATURES_NUMERICOS = list(_FILTRO_SOLO_NUMERICAS) + _ITEMS_FA
-FEATURES_CATEGORICOS = ["provincia", "SEX", "RURAL", "EDU"]
+FEATURES_NUMERICOS = list(_FILTRO_SOLO_NUMERICAS)
+FEATURES_CATEGORICOS = ["provincia", "género", "area_esc"]
 FEATURES = FEATURES_NUMERICOS + FEATURES_CATEGORICOS
 
 # Agrupación para el relato del artículo/cliente
 GRUPOS_FEATURES = {
-    "Condiciones de vida": ["ISECF", "LIBH", "TSTU", "ATRE", "AUSE",
-                            "PREE", "EDAD", "EDU", "provincia"],
-    "Contexto del estudiante": ["AAEG3", "ORGEN", "EFMAT", "VIOES", "INVAP",
-                                "SEX", "RURAL"],
-    "Calidad escolar percibida": ["Indice_global", "Indice_preg", "Indice_refuerzo",
-                                  "Indice_prep_didact_prof", "Indice_calidad_clases_prof",
-                                  "Indice_calidad_clases_dir"],
+    "Contexto sociodemográfico": ["ISECF", "EDU", "PREE", "AUSE", "ATRE",
+                                  "LIBH", "TSTU", "provincia"],
+    "Índices de calidad": ["Indice_global", "Indice_preg", "Indice_refuerzo",
+                           "Indice_prep_didact_prof", "Indice_calidad_clases_prof",
+                           "Indice_calidad_clases_dir"],
     "Ítems del Módulo Nacional": [
         "E3IT21_01_N", "E3IT21_02_N", "E3IT21_03_N", "E3IT21_04_N", "E3IT21_05_N",
         "PPIT44_01_N", "PPIT44_02_N", "PPIT44_03_N", "PPIT44_04_N", "PPIT44_05_N",
@@ -100,7 +83,7 @@ GRUPOS_FEATURES = {
     ],
     "Contexto escolar": ["sec_3", "can_prof_3", "prof_hom_3", "prof_muj_3",
                          "num_hab_esc"],
-    "Ítems del cuestionario de estudiantes": _ITEMS_FA,
+    "Estudiante": ["edad", "género", "area_esc"],
 }
 
 # ---------------------------------------------------------------- tareas
@@ -108,17 +91,17 @@ GRUPOS_FEATURES = {
 # es la variable del modelo maestro y `derivada` expresa cómo construir una binaria.
 TAREAS_CLASIFICACION = {
     "clf_nivel": {
-        "columna": "NL_VP1", "descripcion": "Nivel de desempeño ERCE (I–IV)",
+        "columna": "NL_VP1", "descripcion": "Nivel de desempeño Matemática ERCE (I–IV)",
         "tipo": "clasificacion", "grupo": "Nivel de desempeño",
     },
     "clf_riesgo": {
         "columna": None, "descripcion": "En riesgo: Nivel I vs resto",
-        "derivada": lambda s: (s["NL_VP1"] == "I").astype(int),
+        "derivada": lambda s: s["NL_VP1"].eq("I").astype(float).where(s["NL_VP1"].notna()),
         "tipo": "clasificacion", "grupo": "Riesgo educativo",
     },
     "clf_superacion": {
         "columna": None, "descripcion": "Alto desempeño: Nivel III/IV vs resto",
-        "derivada": lambda s: s["NL_VP1"].isin(["III", "IV"]).astype(int),
+        "derivada": lambda s: s["NL_VP1"].isin(["III", "IV"]).astype(float).where(s["NL_VP1"].notna()),
         "tipo": "clasificacion", "grupo": "Alto desempeño",
     },
     "clf_repitencia": {
@@ -127,12 +110,8 @@ TAREAS_CLASIFICACION = {
     },
 }
 TAREAS_REGRESION = {
-    "reg_lect": {
-        "columna": "PL3", "descripcion": "Puntaje Lectura según condiciones de vida",
-        "tipo": "regresion", "grupo": "Puntaje Lectura",
-    },
     "reg_mat": {
-        "columna": "PM3", "descripcion": "Puntaje Matemática según condiciones de vida",
+        "columna": "PM3", "descripcion": "Puntaje Matemática según módulo y contexto",
         "tipo": "regresion", "grupo": "Puntaje Matemática",
     },
 }

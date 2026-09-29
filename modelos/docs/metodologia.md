@@ -6,30 +6,31 @@ para construir los modelos de predicción/clasificación del ERCE 2019 (Cuba,
 
 ## 1. Datos y tareas
 
-- Fuente: paquete `erce` (5273 estudiantes de 3er grado).
+- Fuente: paquete `erce` — Módulo Nacional de **Matemática** (CSV adicionado
+  por el cliente, prueba M3; 4899 estudiantes de 3er grado tras deduplicar por
+  IDSTUD) + contexto sociodemográfico de la base ERCE (FA_A3) y objetivos
+  (PM3, NL_VP1 matemático).
 - Cada dataset (`modelos/datos/<tarea>.csv`, NO versionado, regenerable con
   `python -m modelos.datos`) tiene **las features primero y la variable
   objetivo en la ÚLTIMA columna**, que es donde se mide el IR y se decide el
   balanceo (misma convención de "la última columna de la base de casos").
-- 108 features: 104 numéricas + 4 categóricas (`provincia`, `SEX`, `RURAL`,
-  `EDU`). Las numéricas incluyen las variables del cuestionario de estudiantes
-  (ítems `E3IT*`) y los 21 ítems del Módulo Nacional/escuela (`E3IT21_*`,
-  `PPIT44_*`, `PPIT45_N`, `PPIT46_*`, `DDIT41_*`, contexto escolar) además de
-  las sociodemográficas. Se **excluyeron** `REPC` (objetivo de
-  `clf_repitencia` y, causalmente, consecuencia más que condición de la
-  trayectoria), IDs/nombres/coordenadas y pares redundantes (`area_esc`≡
-  `RURAL`, `edad`≡`EDAD`−6). Para los ítems presentes en el Módulo, **el
-  módulo manda** sobre su equivalente del cuestionario (misma fuente, sin
-  doble conteo).
+- 43 features: 40 numéricas + 3 categóricas (`provincia`, `género`,
+  `area_esc`). Las numéricas incluyen los 21 ítems del Módulo Nacional
+  (estudiante: `E3IT21_*`; docente: `PPIT44_*`, `PPIT45_N`, `PPIT46_*`;
+  directivo: `DDIT41_*`), los 6 índices de calidad, el contexto escolar
+  (`sec_3`, `can_prof_3`, `prof_hom_3`, `prof_muj_3`, `num_hab_esc`, `edad`)
+  y el contexto sociodemográfico (`ISECF`, `EDU`, `PREE`, `AUSE`, `ATRE`,
+  `LIBH`, `TSTU`). Se **excluyeron** `REPC` (objetivo de `clf_repitencia`),
+  IDs/nombres/coordenadas y los ítems del cuestionario que no están en el
+  módulo.
 
 | Tarea | Tipo | Objetivo | Utilidad |
 |------|------|----------|----------|
-| `clf_nivel` | clasificación | Nivel ERCE I–IV | distribuir desempeño |
+| `clf_nivel` | clasificación | Nivel Matemática I–IV | distribuir desempeño |
 | `clf_riesgo` | clasificación | Nivel I vs resto | alerta temprana |
 | `clf_superacion` | clasificación | Nivel III/IV vs resto | alto desempeño |
 | `clf_repitencia` | clasificación | REPC 0/1 | caso desbalanceado (IR≈18) |
-| `reg_lect` | regresión | puntaje Lectura | estimar nota según condiciones de vida |
-| `reg_mat` | regresión | puntaje Matemática | idem Matemática |
+| `reg_mat` | regresión | puntaje Matemática | estimar nota según módulo y contexto |
 
 ## 2. Proceso (equivalente al Experimenter/Explorer de Weka)
 
@@ -63,7 +64,7 @@ filtro dentro de un `FilteredClassifier` de Weka.
 | `InfoGainAttributeEval` | ganancia de información (`mutual_info_*`) | Ranker, top-K |
 | `WrapperSubsetEval` | rendimiento del propio algoritmo base (CV interna) | GreedyStepwise hacia adelante + tope |
 
-Con 108 atributos, los evaluadores de **subconjunto** (CFS y Wrapper) acotan la
+Con 43 atributos, los evaluadores de **subconjunto** (CFS y Wrapper) acotan la
 búsqueda mediante una **preselección univariada previa** (rankers chi-cuadrado /
 F, equivalente a un `Ranker` de Weka antes de la sub-búsqueda): CFS explora
 hasta `PRESELECCION_MAX=20` candidatos y Wrapper hasta `PRESELECCION_WRAPPER=12`
