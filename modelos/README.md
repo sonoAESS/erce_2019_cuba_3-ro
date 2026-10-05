@@ -2,7 +2,7 @@
 
 Produce los modelos pre-entrenados (proceso fiel a Weka) que consumirá la app
 de escritorio de predicción/clasificación. Ver
-[`docs/metodologia.md`](docs/metodologia.md) para el detalle metodológico.
+[`../docs/metodologia.md`](../docs/metodologia.md) para el detalle metodológico.
 
 ## Módulos
 

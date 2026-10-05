@@ -236,4 +236,4 @@ entorno/bin/python -m pytest -q            # 35 tests
 Artefactos por modelo en `artefactos/<tarea>/`: `pipeline.joblib`,
 `metadata.json`, tablas y gráficas; el resumen comparativo en
 `artefactos/manifiesto.json`. El detalle del proceso está en
-`modelos/docs/metodologia.md`.
+`docs/metodologia.md`.

@@ -62,7 +62,12 @@ Basadas en el análisis de las bases oficiales de Cuba, 3er grado, con medias po
 
 ```
 ├── app.py                 # App Streamlit (secciones + conclusiones por pregunta)
-├── analisis_preguntas.ipynb  # Cuaderno Jupyter: 8 preguntas con proceder y gráficos
+├── cuadernos/             # Cuadernos Jupyter (ver sección siguiente)
+├── docs/                  # Metodología y reportes en Markdown
+├── modelos/               # Biblioteca de modelado: config, preprocesamiento,
+│                          # selectores de atributos, métricas, plots, experimento
+├── artefactos/            # Por modelo: pipeline.joblib, metadata.json, metricas,
+│                          # importancias, figuras de reporte y manifiesto.json
 ├── erce/
 │   ├── config.py          # Rutas, constantes, etiquetas
 │   ├── data.py            # Carga y limpieza de datos (LLECE + Módulo Nacional)
@@ -78,6 +83,48 @@ Basadas en el análisis de las bases oficiales de Cuba, 3er grado, con medias po
 > Los directorios `07.ERCE-2019-FINAL/` (bases de datos) y `2. Libros de código/`
 > (codebooks) **no se versionan** en el repositorio; deben copiarse aparte en la raíz
 > del proyecto para que la app y el cuaderno funcionen.
+
+## Módulo Nacional: qué se puede predecir con estos datos
+
+Dos cuadernos, que deben ejecutarse **en este orden**. El primero produce los datos que
+el segundo consume, de modo que el flujo completo es reproducible con dos comandos.
+
+| Cuaderno | Qué hace | Qué escribe |
+|---|---|---|
+| `cuadernos/exploracion.ipynb` | Carga y cura `CUBA3_MAT_MODULO_NACIONAL.csv`: 5 595 filas → 4 899 estudiantes únicos, resolución de duplicados por docente, tipado de 28 variables (25 numéricas + `provincia`, `género`, `area_esc`), índices derivados y selección Weka fold a fold | `modelos/datos/reg_indice_global.csv`, `clf_indice_bajo.csv`, `clf_indice_nivel.csv` y `seleccion_indice_global.csv` |
+| `cuadernos/estimacion.ipynb` | Reproduce celda por celda el proceso de `modelos/experimento.py`: hold-out 20 %, CV 5 con los cuatro `AttributeSelection` de Weka (`CfsSubsetEval`, `ChiSquared`, `InfoGain`, `WrapperSubsetEval`), balanceo por índice de desbalance, Friedman/Nemenyi, CV 10, estabilidad 3×5, brecha train–test, curva de aprendizaje e importancia de variables | `artefactos/indice_global/` con `pipeline.joblib`, `metadata.json`, CSV de métricas y 7–9 figuras por tarea (PNG/SVG/PDF) |
+
+```bash
+entorno/bin/python -m jupyter nbconvert --to notebook --execute --inplace cuadernos/exploracion.ipynb
+entorno/bin/python -m jupyter nbconvert --to notebook --execute --inplace cuadernos/estimacion.ipynb
+```
+
+> `cuadernos/estimacion.ipynb` recorre la rejilla completa (≈ 800 evaluaciones de modelo) y tarda
+> del orden de 40 minutos. `modelos/experimento.py` ejecuta exactamente el mismo
+> proceso; el cuaderno existe para que cada paso sea auditable y modificable.
+
+### Resultado
+
+Las variables del Módulo Nacional **no explican** el índice global de percepción del
+estudiante: la correlación máxima con cualquier variable disponible es `|r| ≤ 0,06`
+(`cuadernos/exploracion.ipynb`, §7). Aplicando el proceso completo se obtiene:
+
+| Tarea | Ganador (CV 5) | Hold-out | Línea base | Veredicto |
+|---|---|---|---|---|
+| `reg_indice_global` (RMSE) | IBk + ChiSquaredAttributeEval | RMSE 39,46 · r² −0,226 | RMSE 35,65 · r² 0 | **nulo**: peor que la media |
+| `clf_indice_bajo` (F1 macro) | SMO + ChiSquaredAttributeEval | 0,475 (+0,135) | 0,339 | supera la base, pero CV 10 = 0,394 ± 0,055 y AUC 0,546: apenas distingue |
+| `clf_indice_nivel` (F1 macro) | NaiveBayes + WrapperSubsetEval | 0,109 (−0,118) | 0,226 | **nulo**: peor que la clase mayoritaria |
+
+El diagnóstico de brecha train–test coincide en los dos casos de clasificación
+(`ok` y `nulo`) y las curvas de aprendizaje no mejoran al agregar datos
+(`validación` empeora levemente en las tres tareas). Friedman detecta diferencias
+entre algoritmos (`p ≤ 0,0006`), pero se trata de diferencias entre **modelos que no
+aprenden**: elegir el mejor hiperparámetro no crea señal donde no la hay.
+
+La conclusión es sobre el instrumento, no sobre el algoritmo: para estimar el
+desempeño del 3er grado hay que unir el puntaje de mathematics (`PM3.csv`), como ya
+hace el bloque de modelos de `artefactos/`. Estos tres pipelines quedan persistidos
+como línea base documentada, no como sistema de puntuación.
 
 ## Ejecución
 
@@ -103,7 +150,7 @@ La app quedará en `http://localhost:8501`.
 Abrir el cuaderno Jupyter:
 
 ```bash
-entorno/bin/python -m jupyter lab analisis_preguntas.ipynb
+entorno/bin/python -m jupyter lab cuadernos/analisis_preguntas.ipynb
 ```
 
 > El kernel del cuaderno está registrado como `erce` (se instala con
