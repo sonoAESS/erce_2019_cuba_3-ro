@@ -225,6 +225,14 @@ def ejecutar_tarea(tarea, muestras=None, folds_seleccion=cfg.CV_FOLDS_SELECCION,
     Xte_s = sel_f.transform(pre_f.transform(Xte_df))
     y_te_pred = mod_f.predict(Xte_s)
     y_te_prob = _probas(mod_f, Xte_s) if clasif else None
+    # Referencia del mismo holdout (clase mayoritaria / media del objetivo):
+    # sin ella un f1_macro de 0.49 o un r2 negativo se leen como desempeño, y el
+    # diagnóstico de brecha no distingue un modelo útil de uno que se aprovecha
+    # del desbalance de clases.
+    base = (metricas.linea_base_clasificacion(yte_ser) if clasif
+            else metricas.linea_base_regresion(yte_ser))
+    base_hold = ({k: base[k] for k in ("exactitud", "f1_macro", "auc_macro", "kappa")}
+                 if clasif else {k: base[k] for k in ("r", "mae", "rmse", "r2")})
     if clasif:
         mm = metricas.calcular_metricas_clasificacion(yte_ser, y_te_pred, y_te_prob, clases)
         hold = {k: mm[k] for k in ("exactitud", "f1_macro", "auc_macro", "kappa")}
@@ -232,24 +240,22 @@ def ejecutar_tarea(tarea, muestras=None, folds_seleccion=cfg.CV_FOLDS_SELECCION,
         _mt = metricas.metricas_fold_clasif(ytr_ser, y_tr_pred,
                                             _probas(mod_f, sel_f.transform(pre_f.transform(Xtr_df))),
                                             clases)["f1_macro"]
-        dg = sobreajuste.detectar_sobreajuste(_mt, hold["f1_macro"])
+        _supera = hold["f1_macro"] - base_hold["f1_macro"]
+        dg = sobreajuste.detectar_sobreajuste(_mt, hold["f1_macro"],
+                                              linea_base=base_hold["f1_macro"])
     else:
         mm = metricas.calcular_metricas_regresion(yte_ser, y_te_pred)
         hold = {k: mm[k] for k in ("r", "mae", "rmse", "rae", "rrse", "r2")}
         y_tr_pred = mod_f.predict(sel_f.transform(pre_f.transform(Xtr_df)))
         _mt = metricas.metricas_fold_regresion(ytr_ser, y_tr_pred)["rmse"]
-        dg = sobreajuste.detectar_sobreajuste(-_mt, -hold["rmse"])
+        # La métrica se lleva negada (mayor = mejor) y el piso de 0.45 no aplica
+        # a un RMSE: aquí el suelo es la media del objetivo.
+        _supera = hold["r2"] - base_hold["r2"]
+        dg = sobreajuste.detectar_sobreajuste(-_mt, -hold["rmse"], piso=None,
+                                              linea_base=-base_hold["rmse"])
+    base_hold["supera_a_linea_base"] = round(float(_supera), 4)
 
     cv_final = _cv_ganador(Xtr_df, ytr_ser, tipo, config, modelado_s, folds_final, semilla)
-    # Referencia del mismo holdout (clase mayoritaria / media del objetivo):
-    # sin ella un f1_macro de 0.49 o un r2 negativo se leen como desempeño.
-    base = (metricas.linea_base_clasificacion(yte_ser) if clasif
-            else metricas.linea_base_regresion(yte_ser))
-    base_hold = ({k: base[k] for k in ("exactitud", "f1_macro", "auc_macro", "kappa")}
-                 if clasif else {k: base[k] for k in ("r", "mae", "rmse", "r2")})
-    _supera = ((hold["f1_macro"] - base_hold["f1_macro"]) if clasif
-               else (hold["r2"] - base_hold["r2"]))
-    base_hold["supera_a_linea_base"] = round(float(_supera), 4)
     estab = _cv_estabilidad(Xtr_df, ytr_ser, tipo, config, modelado_s, semilla)
     curva = sobreajuste.curva_aprendizaje(
         _pipeline_cv(config, tipo, modelado_s, semilla), Xtr_df, ytr_ser,

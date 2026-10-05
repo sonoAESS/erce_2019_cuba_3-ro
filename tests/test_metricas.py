@@ -91,6 +91,31 @@ def test_detectar_sobreajuste():
     assert s3["estado"] == "ok"
 
 
+def test_detectar_sobreajuste_colapsado_a_la_base():
+    """El caso que se leía como "ok": train y test iguales y ambos en la base.
+
+    clf_repitencia daba brecha +0.005 y validación 0.487 > piso, así que pasaba
+    por "brecha controlada" cuando en realidad colapsaba a la clase mayoritaria.
+    """
+    s = sobreajuste.detectar_sobreajuste(0.492, 0.487, linea_base=0.487)
+    assert s["estado"] == "nulo"
+    assert s["linea_base"] == pytest.approx(0.487)
+
+
+def test_detectar_sobreajuste_supera_la_base_levemente():
+    s = sobreajuste.detectar_sobreajuste(0.50, 0.494, linea_base=0.432)
+    assert s["estado"] == "ok"
+
+
+def test_detectar_sobreajuste_regresion_piso_no_aplica():
+    """En regresión la métrica va negada: el piso de 0.45 no debe disparar."""
+    s = sobreajuste.detectar_sobreajuste(-60.0, -50.0, piso=None, linea_base=-75.0)
+    assert s["estado"] == "ok"
+    # Por debajo de la media del objetivo: RMSE mayor que el de la base.
+    s2 = sobreajuste.detectar_sobreajuste(-50.0, -80.0, piso=None, linea_base=-75.0)
+    assert s2["estado"] == "nulo"
+
+
 def test_curva_aprendizaje_regresion(datos_regresion):
     from sklearn.linear_model import Ridge
     X = datos_regresion[["num1", "num2"]]

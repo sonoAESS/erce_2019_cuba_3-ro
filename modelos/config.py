@@ -38,6 +38,8 @@ MAX_WRAPPER_FEATURES = 8         # tope de atributos del WrapperSubsetEval
 PRESELECCION_MAX = 20            # tope de candidatos del ranking previo (CFS)
 PRESELECCION_WRAPPER = 12        # tope de candidatos del wrapper (más caro)
 BREAK_OVERFIT = 0.08             # brecha train-test (abs) que dispara alerta de sobreajuste
+BREAK_OVERFIT_RELATIVO = 0.10    # ídem en regresión, como fracción del RMSE de la línea base
+                               # (BREAK_OVERFIT está en escala 0-1 y no sirve sobre un RMSE)
 MUESTRA_PERMUTACION = 1500       # límite de filas para permutation importance
 
 # ---------------------------------------------------------------- features
