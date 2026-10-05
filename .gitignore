@@ -22,6 +22,12 @@ __pycache__/
 # Configuración local de Streamlit
 .streamlit/
 
+# Salidas regenerables del pipeline (se reconstruyen con cuadernos/ y scripts/)
+artefactos/
+
+# Sitio web con Astro (código y build; vive en la rama `web`)
+web/
+
 # Archivos temporales del sistema
 .DS_Store
 fotos
