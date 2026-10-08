@@ -105,26 +105,44 @@ entorno/bin/python -m jupyter nbconvert --to notebook --execute --inplace cuader
 
 ### Resultado
 
-Las variables del Módulo Nacional **no explican** el índice global de percepción del
-estudiante: la correlación máxima con cualquier variable disponible es `|r| ≤ 0,06`
-(`cuadernos/exploracion.ipynb`, §7). Aplicando el proceso completo se obtiene:
+La exploración (`cuadernos/exploracion.ipynb`, §7) encuentra correlaciones
+lineales bivariadas casi nulas entre el índice global de percepción del
+estudiante y cualquier variable del módulo (`|r| ≤ 0,06`). Con el proceso
+completo de estimación (`cuadernos/estimacion.ipynb`) sí se extrae señal, pero
+débil:
 
 | Tarea | Ganador (CV 5) | Hold-out | Línea base | Veredicto |
 |---|---|---|---|---|
-| `reg_indice_global` (RMSE) | IBk + ChiSquaredAttributeEval | RMSE 39,46 · r² −0,226 | RMSE 35,65 · r² 0 | **nulo**: peor que la media |
-| `clf_indice_bajo` (F1 macro) | SMO + ChiSquaredAttributeEval | 0,475 (+0,135) | 0,339 | supera la base, pero CV 10 = 0,394 ± 0,055 y AUC 0,546: apenas distingue |
-| `clf_indice_nivel` (F1 macro) | NaiveBayes + WrapperSubsetEval | 0,109 (−0,118) | 0,226 | **nulo**: peor que la clase mayoritaria |
+| `reg_indice_global` (RMSE) | HistGB + InfoGain | RMSE 33,53 · r² 0,115 | RMSE 35,65 · r² 0 | supera la base (Δr² +0,115), con brecha train–test marcada |
+| `clf_indice_bajo` (F1 macro) | HistGB + InfoGain | 0,610 (+0,271) · AUC 0,657 | 0,339 | supera la base con margen; discriminación modesta |
+| `clf_indice_nivel` (F1 macro) | RandomForest + InfoGain + SMOTE | 0,441 (+0,215) | 0,226 | supera la base; brecha de underfitting |
 
-El diagnóstico de brecha train–test coincide en los dos casos de clasificación
-(`ok` y `nulo`) y las curvas de aprendizaje no mejoran al agregar datos
-(`validación` empeora levemente en las tres tareas). Friedman detecta diferencias
-entre algoritmos (`p ≤ 0,0006`), pero se trata de diferencias entre **modelos que no
-aprenden**: elegir el mejor hiperparámetro no crea señal donde no la hay.
+Sobre el **puntaje real de Matemática** (`modelos/`, artefactos en
+`artefactos/`), el bloque de cinco tareas —selección CV 5-fold y evaluación
+Weka (CV 10, estabilidad 3×5 y Friedman con Nemenyi)— también mejora la línea
+base en las cinco:
 
-La conclusión es sobre el instrumento, no sobre el algoritmo: para estimar el
-desempeño del 3er grado hay que unir el puntaje de mathematics (`PM3.csv`), como ya
-hace el bloque de modelos de `artefactos/`. Estos tres pipelines quedan persistidos
-como línea base documentada, no como sistema de puntuación.
+| Tarea | Ganador | Hold-out | Línea base | Δ | AUC |
+|---|---|---|---|---|---|
+| `clf_nivel` (F1) | RandomForest + wrapper + SMOTE | 0,326 | 0,124 | +0,202 | 0,581 |
+| `clf_riesgo` (F1) | NaiveBayes + InfoGain | 0,561 | 0,432 | +0,129 | 0,640 |
+| `clf_superacion` (F1) | SMO + wrapper | 0,608 | 0,342 | +0,266 | 0,648 |
+| `clf_repitencia` (F1) | NaiveBayes + CFS | 0,524 | 0,487 | +0,037 | 0,769 |
+| `reg_mat` (R²) | LinearRegression + wrapper | 0,177 | 0,000 | +0,177 | — |
+
+La señal existe pero es floja: R² ≤ 0,18 en regresión y AUC 0,58–0,65 en las
+tres tareas de Matemática (el 82 % de la varianza y gran parte del margen de
+discriminación quedan sin explicar). Las brechas train–test de `clf_nivel` y
+`reg_mat` indican sobreajuste; `clf_repitencia` es la única con AUC alta
+(0,769), pero su objetivo (repetición, IR 18,6) no es el desempeño.
+
+> **Nota histórica.** Hasta el 8/oct/2026 esta sección reportaba que ninguna
+> tarea superaba la línea base. Ese veredicto era un **artefacto de dos bugs**
+> en la selección y el orden de salida, no un resultado de los datos: los
+> afines afinaban las *peores* configuraciones y Friedman invertía el ranking
+> en regresión. Corrección y verificación en `docs/informe_ejecucion.md` §4; los
+> números de arriba provienen de las corridas posteriores a la corrección.
+
 
 ## Ejecución
 

@@ -84,3 +84,25 @@ def test_importancias_df():
     imp = ex._importancias(m, X[:60], y[:60], nombres, "clasificacion")
     assert list(imp.columns) == ["variable", "importancia"]
     assert len(imp) == 3
+
+def test_probas_reordena_las_columnas_al_orden_de_clases():
+    """`predict_proba` devuelve el orden de `modelo.classes_` (del modelo) y
+    `clases` el orden de aparición. Sin reordenar, `por_clase.csv` y las curvas
+    ROC por clase quedan mal etiquetadas (`clf_nivel` llega como
+    ['III','I','II','IV'] frente a ['I','II','III','IV'] del modelo)."""
+    class _M:
+        classes_ = np.array([0, 1])
+
+        def predict_proba(self, X):
+            return self.columnas
+
+    X = np.zeros((4, 1))
+    m = _M()
+    m.columnas = np.array([[0.9, 0.1], [0.2, 0.8], [0.7, 0.3], [0.4, 0.6]])
+    out = ex._probas(m, X, ["1", "0"])
+    assert np.allclose(out[:, 0], m.columnas[:, 1])  # '1' ocupa la 0
+    assert np.allclose(out[:, 1], m.columnas[:, 0])  # '0' ocupa la 1
+    # Sin `clases` se devuelve tal cual (orden del modelo).
+    assert np.allclose(ex._probas(m, X), m.columnas)
+    # Orden ya coincidente: no se toca.
+    assert np.allclose(ex._probas(m, X, ["0", "1"]), m.columnas)

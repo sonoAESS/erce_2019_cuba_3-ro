@@ -54,19 +54,40 @@ def _nombre_original(nombre_pp, numericos):
     return nombre_pp
 
 
-def _probas(modelo, X):
-    """Probabilidades para clasificadores (predict_proba o decisión)."""
+def _probas(modelo, X, clases=None):
+    """Probabilidades para clasificadores (predict_proba o decisión).
+
+    Si se pasa `clases`, las columnas se reordenan para que queden en ese
+    orden: `predict_proba` devuelve los nombres en `modelo.classes_` (orden
+    del modelo), mientras `clases` es el orden de aparición en los datos y
+    `calcular_metricas_clasificacion` / `grafico_roc` leen la columna i-ésima
+    como la clase i-ésima de `clases`. Sin reordenar, las filas de
+    `por_clase.csv` y las curvas ROC por clase quedan mal etiquetadas
+    (p.ej. `clf_nivel`, cuyas clases llegan como ['III','I','II','IV']).
+    """
+    P = None
     if hasattr(modelo, "predict_proba"):
         try:
-            return modelo.predict_proba(X)
+            P = np.asarray(modelo.predict_proba(X), dtype=float)
         except Exception:
-            pass
-    if hasattr(modelo, "decision_function"):
+            P = None
+    if P is None and hasattr(modelo, "decision_function"):
         d = modelo.decision_function(X)
         if d.ndim == 1:
-            return np.c_[1 - d, d]
-        return d
-    return None
+            P = np.c_[1 - d, d]
+        else:
+            P = np.asarray(d, dtype=float)
+    if P is None or P.ndim != 2 or not clases:
+        return P
+    objetivo = [str(c) for c in clases]
+    propias = [str(c) for c in getattr(modelo, "classes_", range(P.shape[1]))]
+    if len(propias) != P.shape[1] or propias == objetivo:
+        return P
+    alineada = np.zeros((P.shape[0], len(objetivo)))
+    for j, c in enumerate(propias):
+        if c in objetivo:
+            alineada[:, objetivo.index(c)] = P[:, j]
+    return alineada
 
 
 def _importancias(modelo, X, y, nombres_sel, tipo):
@@ -178,7 +199,7 @@ def ejecutar_tarea(tarea, muestras=None, folds_seleccion=cfg.CV_FOLDS_SELECCION,
                     modelo.fit(Xb, yb)
                     yp = modelo.predict(X_sel_va)
                     if clasif:
-                        yprob = _probas(modelo, X_sel_va)
+                        yprob = _probas(modelo, X_sel_va, clases)
                         mf = metricas.metricas_fold_clasif(y_va, yp, yprob, clases)
                     else:
                         mf = metricas.metricas_fold_regresion(y_va, yp)
@@ -201,21 +222,38 @@ def ejecutar_tarea(tarea, muestras=None, folds_seleccion=cfg.CV_FOLDS_SELECCION,
     mejor_por_fold = (tabla.groupby(["fold", "algoritmo"])[principal]
                       .agg("max" if clasif else "min").reset_index())
     if mejor_por_fold["algoritmo"].nunique() >= 3:
+        # `friedman.rangos_medios` asigna rango 1 al valor MÁS GRANDE
+        # (argsort(argsort(-v))). En clasificación eso es el F1 mayor, pero en
+        # regresión el RMSE más pequeño es el mejor, así que se niega igual
+        # que hace `paso_5_friedman` del cuaderno. Sin este signo el ranking
+        # y el diagrama CD salían invertidos: en reg_mat aparecía IBk como
+        # rango 1.0 siendo el de MAYOR RMSE (75,4–78,8 frente a 71,1 de
+        # LinearRegression), y LinearRegression quedaba el último.
+        _metrica = (mejor_por_fold[principal] if clasif
+                    else -mejor_por_fold[principal])
         fr = friedman.ranking_final(friedman.tabla_por_algoritmo(
-            mejor_por_fold.rename(columns={principal: "metrica"}),
+            pd.DataFrame({"fold": mejor_por_fold["fold"],
+                          "algoritmo": mejor_por_fold["algoritmo"],
+                          "metrica": _metrica}),
             algoritmo_col="algoritmo"))
     else:
         fr = {"friedman_stat": float("nan"), "friedman_p": float("nan"),
               "significativo": False, "cd_nemenyi": float("nan"),
               "ranking": pd.DataFrame(
                   mejor_por_fold.groupby("algoritmo")[principal].mean()
-                  .sort_values(ascending=not _mejor_es_min(tipo))
+                  .sort_values(ascending=_mejor_es_min(tipo))
                   .rename("rango_medio").reset_index()),
               "nemenyi": pd.DataFrame(), "n_folds": 0}
 
-    # 5) ganador
+    # 5) ganador: siempre MEJOR primero (rango 1 arriba). En regresión el RMSE
+    # menor va primero (ascending=True) y en clasificación el F1 mayor
+    # (ascending=False), es decir `ascending=_mejor_es_min(tipo)`. El `not`
+    # que había invertía el orden: `iloc[0]` devolvía la PEOR configuración
+    # de la rejilla y los cinco modelos se entrenaron con ella (las tablas
+    # de artefactos/reporte/<tarea>/comparativa.csv lo confirman, la
+    # desplegada iba la última de todas).
     mejor = (agg.sort_values("principal_mean",
-                             ascending=not _mejor_es_min(tipo)).iloc[0])
+                             ascending=_mejor_es_min(tipo)).iloc[0])
     config = {"selector": mejor["selector"], "algoritmo": mejor["algoritmo"],
               "balanceo": mejor["balanceo"]}
 
@@ -224,7 +262,7 @@ def ejecutar_tarea(tarea, muestras=None, folds_seleccion=cfg.CV_FOLDS_SELECCION,
     pre_f, sel_f, mod_f = pipe.named_steps["pre"], pipe.named_steps["sel"], pipe.named_steps["mod"]
     Xte_s = sel_f.transform(pre_f.transform(Xte_df))
     y_te_pred = mod_f.predict(Xte_s)
-    y_te_prob = _probas(mod_f, Xte_s) if clasif else None
+    y_te_prob = _probas(mod_f, Xte_s, clases) if clasif else None
     # Referencia del mismo holdout (clase mayoritaria / media del objetivo):
     # sin ella un f1_macro de 0.49 o un r2 negativo se leen como desempeño, y el
     # diagnóstico de brecha no distingue un modelo útil de uno que se aprovecha
@@ -238,7 +276,7 @@ def ejecutar_tarea(tarea, muestras=None, folds_seleccion=cfg.CV_FOLDS_SELECCION,
         hold = {k: mm[k] for k in ("exactitud", "f1_macro", "auc_macro", "kappa")}
         y_tr_pred = mod_f.predict(sel_f.transform(pre_f.transform(Xtr_df)))
         _mt = metricas.metricas_fold_clasif(ytr_ser, y_tr_pred,
-                                            _probas(mod_f, sel_f.transform(pre_f.transform(Xtr_df))),
+                                            _probas(mod_f, sel_f.transform(pre_f.transform(Xtr_df)), clases),
                                             clases)["f1_macro"]
         _supera = hold["f1_macro"] - base_hold["f1_macro"]
         dg = sobreajuste.detectar_sobreajuste(_mt, hold["f1_macro"],
@@ -377,8 +415,9 @@ def _cv_ganador(Xtr_df, ytr, tipo, config, modelado_s, k, semilla):
         Xvs = sel2.transform(Xv)
         yp = mod2.predict(Xvs)
         if tipo == "clasificacion":
+            _clases_cv = [str(c) for c in ytr.unique()]
             lista.append(metricas.metricas_fold_clasif(
-                ytr.iloc[va], yp, _probas(mod2, Xvs), [str(c) for c in ytr.unique()]))
+                ytr.iloc[va], yp, _probas(mod2, Xvs, _clases_cv), _clases_cv))
         else:
             lista.append(metricas.metricas_fold_regresion(ytr.iloc[va], yp))
     dfr = pd.DataFrame(lista)

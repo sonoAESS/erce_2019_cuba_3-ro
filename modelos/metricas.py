@@ -105,9 +105,19 @@ def calcular_metricas_clasificacion(y_true, y_pred, y_prob, clases):
     if y_prob is None:
         auc = 0.0
     elif len(clases) > 2:
+        # `multi_class="ovr"` exige las columnas en el orden de las clases
+        # ordenadas de `y_true`. `y_prob` viene alineada a `clases`, que guarda
+        # el orden de aparición: si no coincide, hay que reordenar.
+        orden = sorted(set(y_true))
+        if set(orden) == set(clases):
+            y_prob = y_prob[:, [clases.index(c) for c in orden]]
         auc = roc_auc_score(y_true, y_prob, multi_class="ovr", average="macro")
     else:
-        auc = (_roc_area(y_true, y_prob[:, 1])
+        # Positiva = última clase ordenada (convención de scikit-learn). La
+        # columna NO es siempre la 1: `clases` puede venir como ['1','0'].
+        pos = sorted(set(y_true))[-1]
+        col = clases.index(pos) if pos in clases else (1 if len(clases) > 1 else 0)
+        auc = (_roc_area(y_true, y_prob[:, col])
                if len(np.unique(y_true)) > 1 else 0.0)
     return {
         "exactitud": round(float(exact), 4),

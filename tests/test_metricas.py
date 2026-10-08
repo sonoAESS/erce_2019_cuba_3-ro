@@ -126,3 +126,30 @@ def test_curva_aprendizaje_regresion(datos_regresion):
     assert len(curva) == 2
     assert curva[-1]["n_entrenamiento"] > curva[0]["n_entrenamiento"]
     assert np.isfinite(curva[0]["train_media"])
+
+def test_auc_binaria_con_clases_en_orden_de_aparicion():
+    """`clases` como ['1','0']: la positiva no es siempre la columna 1.
+
+    `y_prob` llega ALINEADA a `clases` (reordena `_probas`/`probas`), así que
+    con el orden invertido la columna de la positiva es la 0. Antes se usaba
+    siempre `y_prob[:, 1]` y el AUC salía 0,0 en lugar de 1,0.
+    """
+    y = np.array([1] * 30 + [0] * 30)  # str(y) = '1'/'0', como en la tarea real
+    scores = np.r_[np.linspace(0.6, 1.0, 30), np.linspace(0.0, 0.4, 30)]
+    P = np.column_stack([scores, 1 - scores])  # columnas en orden ["1", "0"]
+    m = metricas.calcular_metricas_clasificacion(y, y, P, ["1", "0"])
+    assert m["auc_macro"] == pytest.approx(1.0)
+    assert m["por_clase"].set_index("Clase").loc["1", "ROC_Area"] == pytest.approx(1.0)
+
+
+def test_auc_multiclase_reordena_a_orden_alfabetico_de_y_true():
+    """`multi_class="ovr"` exige las columnas en orden alfabético de `y_true`,
+    pero `clases` guarda el orden de aparición (['bajo','medio','alto'])."""
+    y = np.array(["bajo"] * 20 + ["medio"] * 20 + ["alto"] * 20)
+    clases = ["bajo", "medio", "alto"]  # orden de aparición, no alfabético
+    P = np.full((60, 3), 0.1)
+    bloques = {"bajo": slice(0, 20), "medio": slice(20, 40), "alto": slice(40, 60)}
+    for i, c in enumerate(clases):
+        P[bloques[c], i] = 0.8
+    m = metricas.calcular_metricas_clasificacion(y, y, P, clases)
+    assert m["auc_macro"] == pytest.approx(1.0)
