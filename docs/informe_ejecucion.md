@@ -610,6 +610,9 @@ entorno/bin/python -m jupyter nbconvert --to notebook --execute --inplace \
 entorno/bin/python -m modelos.entrenar --tareas todas
 entorno/bin/python scripts/verificar_artefactos.py
 entorno/bin/python -m pytest -q
+
+# 5) figuras del reporte de resultados (usa los artefactos del paso 4)
+entorno/bin/python scripts/imagenes_reporte.py
 ```
 
 ### Dónde está cada cosa
@@ -621,4 +624,7 @@ entorno/bin/python -m pytest -q
 | `cuadernos/analisis_preguntas.ipynb` | estudio: 11 preguntas de interés | sí |
 | `modelos/datos/*.csv` | datasets curados, regenerables | no (gitignored) |
 | `artefactos/` | pipelines, metadata, métricas, figuras | no (gitignored) |
+| `scripts/imagenes_reporte.py` | genera las 4 figuras resumen del reporte y copia 7 figuras por tarea a `docs/imagenes/` | sí |
+| `docs/imagenes/` | 11 PNG versionados (resumen + ROC/confusión/Friedman/importancia/scatter/aprendizaje) | sí |
+| `docs/reporte_resultados.md` | informe de resultados para el cliente, con las figuras incrustadas | sí |
 | `docs/informe_ejecucion.md` | este informe | sí |

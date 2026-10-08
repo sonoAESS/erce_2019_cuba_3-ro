@@ -45,6 +45,12 @@ frecuente— y contra un 20 % de estudiantes reservado que el modelo nunca vio:
 | `clf_repitencia` | 0.524 | 0.487 | +0.037 | 0.769 |
 | `reg_mat` | R² = 0.177 | R² = 0.000 | +0.177 | — |
 
+![El modelo y la línea base, frente a frente, en el hold-out de cada tarea](imagenes/01_modelo_vs_base.png)
+
+*Cada barra mide el resultado sobre el 20 % de estudiantes que el modelo nunca
+vio. En azul, el modelo; en gris, adivinar siempre la respuesta más frecuente.
+El número en verde es la mejora (Δ).*
+
 Tres lecturas importantes de esa tabla:
 
 1. **La mejora es real, pero el techo está puesto por los datos.** En la
@@ -54,12 +60,23 @@ Tres lecturas importantes de esa tabla:
    CV 10-fold y la estabilidad 3×5 sostienen el número) e insuficiente para
    identificar estudiantes individuales.
 
+![AUC de hold-out por tarea, con la referencia del azar](imagenes/02_auc_holdout.png)
+
+*Un AUC de 0.5 equivale a lanzar una moneda al decidir. Ninguna tarea de
+desempeño pasa de 0.65; solo `clf_repitencia` supera 0.7.*
+
 2. **El F1 no es un porcentaje de acierto.** En `clf_repitencia`, donde el 95 %
    no repitió, la clase mayoritaria sola saca 0.487; el modelo llega a 0.524
    (Δ +0.037), pero con un **AUC de 0.769**: sí ordena a los estudiantes por
    probabilidad de repetir, aunque apenas gane en el punto de corte. Es la
    única tarea con capacidad de discriminación aceptable, y no mide
    desempeño.
+
+![Razón de desequilibrio de clases por tarea](imagenes/04_ir_por_tarea.png)
+
+*En `clf_repitencia` repitió 1 de cada 19 estudiantes: por eso la línea base de
+"siempre no repitió" ya vale 0.487 de F1 y cualquier mejora parece pequeña.
+Las líneas punteadas marcan los umbrales de balanceo de la metodología.*
 
 3. **Estos números no eran visibles hasta corregir la herramienta.** La
    versión anterior de este reporte concluía que *ninguna* tarea superaba la
@@ -191,6 +208,17 @@ R² 0.184 ± 0.030), y la estabilidad 3×5 repite el mismo orden
 (0.306 · 0.574 · 0.625 · 0.581 · −71.61 RMSE). En `clf_nivel` el hold-out
 (0.326) está algo por encima de la CV (0.314): es sobreajuste leve, no un salto.
 
+![Hold-out, validación cruzada y estabilidad, lado a lado](imagenes/03_brecha_clasificacion.png)
+
+*Los tres números deben sostenerse entre sí: donde el hold-out se separa
+(`clf_nivel`), hay sobreajuste; en el resto, la estimación es consistente.*
+
+![Curva de aprendizaje de clf_nivel](imagenes/08_aprendizaje_clf_nivel.png)
+
+*El F1 de entrenamiento de `clf_nivel` llega a 1.0 con pocos datos, mientras el
+de validación se queda plano entre 0.27 y 0.32: el RandomForest con SMOTE
+memoriza en lugar de generalizar.*
+
 **Variables seleccionadas** (ya no coinciden entre tareas):
 
 | Tarea | Variables |
@@ -201,12 +229,48 @@ R² 0.184 ± 0.030), y la estabilidad 3×5 repite el mismo orden
 | `clf_repitencia` | `edad`, `Indice_global`, `ISECF`, `género_Niño` |
 | `reg_mat` | `Indice_global`, `Indice_preg`, `E3IT21_04_N`, `ISECF`, `EDU`, `AUSE`, `LIBH`, `TSTU` |
 
+![Importancia por permutación en reg_mat](imagenes/10_importancia_reg_mat.png)
+
+*Importancia por permutación en `reg_mat`: se remueve cada variable y se mide
+cuánto empeora el RMSE. `Indice_global` —una sola variable del módulo— es el
+predictor más importante del modelo.*
+
 **Friedman + Nemenyi:** las cinco diferencias entre algoritmos son
 estadísticamente significativas (p entre 0.0017 y 0.0426, CD ≈ 3.4–4.0), pero
 eso compara algoritmos **con este conjunto de variables**, no calidad
 predictiva. El ranking corrige el bug de orden documentado en
 `docs/informe_ejecucion.md` §4.4: en `reg_mat`, IBk (rank 1,0 = el peor RMSE)
 ha sido reemplazado por SMOreg (1,8) y LinearRegression (2,0).
+
+![Ranking medio de Friedman en reg_mat](imagenes/09_friedman_cd_reg_mat.png)
+
+*Menor rank = mejor RMSE: SMOreg (1,8) y LinearRegression (2,0) lideran; IBk,
+que la versión anterior declaraba el mejor, queda al final (6,0).*
+
+**Discriminación y confusión.** Las curvas ROC del hold-out muestran la
+distancia entre la peor y la mejor tarea: `clf_nivel` apenas se separa de la
+diagonal (AUC 0.581), mientras `clf_repitencia` se aleja con claridad (0.769).
+
+![ROC de clf_nivel en el hold-out](imagenes/05_roc_clf_nivel.png)
+
+*`clf_nivel`: curva casi pegada a la diagonal; un AUC de 0.581 apenas supera
+lanzar una moneda.*
+
+![ROC de clf_repitencia en el hold-out](imagenes/06_roc_clf_repitencia.png)
+
+*`clf_repitencia`: AUC 0.769; la curva se separa de la diagonal a lo ancho de
+todo el rango de umbrales.*
+
+En la tarea con el mejor AUC, la matriz de confusión del hold-out explica por
+qué el F1 apenas se mueve:
+
+![Matriz de confusión de clf_repitencia en el hold-out](imagenes/07_matriz_confusion_clf_repitencia.png)
+
+*Filas = realidad, columnas = predicción. El modelo detecta 32 de los 49
+estudiantes que repitieron (recall 0.65), pero de los 264 a los que señala solo
+32 repitieron de verdad (precisión 0.12). Como alerta individual produciría más
+de 7 falsos positivos por cada acierto: la capacidad de ordenar por probabilidad
+(AUC 0.769) no se traduce en capacidad de señalar.*
 
 ### 2.5 Diagnóstico de `reg_mat` — de R² negativo a R² 0.177
 
@@ -220,6 +284,12 @@ configuración desplegada es la mejor de su rejilla y el resultado es:
 - CV 10-fold: R² 0.184 ± 0.030, RMSE 71.55 ± 2.99.
 - Diagnóstico de brecha: `ok` (train y test consistentes), frente al
   `sobreajuste` del modelo anterior.
+
+![Predicho contra observado en el hold-out de reg_mat](imagenes/11_scatter_reg_mat.png)
+
+*Cada punto es un estudiante del hold-out de `reg_mat`. La nube es ancha —de
+ahí el R² 0.177—, pero la nube sube: el modelo ordena de menor a mayor con
+correlación 0.42.*
 
 Sigue siendo una explicación parcial: el 82 % de la varianza del puntaje queda
 sin explicar, y la brecha frente a la predicción por la media (ΔR² +0.177) es

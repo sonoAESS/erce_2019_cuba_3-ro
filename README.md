@@ -143,6 +143,13 @@ discriminación quedan sin explicar). Las brechas train–test de `clf_nivel` y
 > en regresión. Corrección y verificación en `docs/informe_ejecucion.md` §4; los
 > números de arriba provienen de las corridas posteriores a la corrección.
 
+> **Informe con figuras.** El detalle ilustrado —comparación con la línea base,
+> AUC por tarea, curvas ROC, matriz de confusión de `clf_repitencia`, ranking de
+> Friedman y predicho contra observado— está en
+> [`docs/reporte_resultados.md`](docs/reporte_resultados.md); las figuras viven
+> en `docs/imagenes/` y se regeneran con `python scripts/imagenes_reporte.py`
+> (paso 5 de `docs/informe_ejecucion.md` §7).
+
 
 ## Ejecución
 
